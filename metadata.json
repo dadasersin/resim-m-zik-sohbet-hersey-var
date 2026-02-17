@@ -1,0 +1,8 @@
+{
+  "name": "Moduler AI Platform",
+  "description": "A comprehensive, modular AI ecosystem featuring advanced text generation, image/video creation, text-to-speech, and real-time multimodal interaction powered by Gemini models.",
+  "requestFramePermissions": [
+    "camera",
+    "microphone"
+  ]
+}
