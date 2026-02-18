@@ -6,7 +6,7 @@ services:
     publishDir: dist
     envVars:
       - key: API_KEY
-        sync: false # Render panelinden manuel girmeniz gerekecek
+        sync: false
     routes:
       - type: rewrite
         source: /*

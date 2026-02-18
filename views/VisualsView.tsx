@@ -25,9 +25,12 @@ const VisualsView: React.FC = () => {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = (event) => {
-      const base64 = (event.target?.result as string).split(',')[1];
-      setSelectedMedia({ data: base64, mimeType: file.type });
-      setMode('edit');
+      const resultStr = event.target?.result as string;
+      if (resultStr) {
+        const base64 = resultStr.split(',')[1];
+        setSelectedMedia({ data: base64, mimeType: file.type });
+        setMode('edit');
+      }
     };
     reader.readAsDataURL(file);
     if (e.target) e.target.value = '';
@@ -40,7 +43,8 @@ const VisualsView: React.FC = () => {
     setStatus('İşlem Başlatılıyor...');
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
+      const apiKey = process.env.API_KEY || '';
+      const ai = new GoogleGenAI({ apiKey });
 
       if (mode === 'generate') {
         setStatus('Görsel Çiziliyor...');
@@ -75,8 +79,10 @@ const VisualsView: React.FC = () => {
       } 
       else if (mode === 'video' || isExtension) {
         const aiStudio = (window as any).aistudio;
-        if (aiStudio && typeof aiStudio.hasSelectedApiKey === 'function' && !(await aiStudio.hasSelectedApiKey())) {
-          await aiStudio.openSelectKey();
+        if (aiStudio && typeof aiStudio.hasSelectedApiKey === 'function') {
+          if (!(await aiStudio.hasSelectedApiKey())) {
+            await aiStudio.openSelectKey();
+          }
         }
 
         let operation;
@@ -110,7 +116,7 @@ const VisualsView: React.FC = () => {
         const generatedVideo = operation.response?.generatedVideos?.[0];
         const downloadLink = generatedVideo?.video?.uri;
         if (downloadLink) {
-          const videoRes = await fetch(`${downloadLink}&key=${process.env.API_KEY || ''}`);
+          const videoRes = await fetch(`${downloadLink}&key=${apiKey}`);
           const blob = await videoRes.blob();
           setResult({ url: URL.createObjectURL(blob), type: 'video' });
         }
