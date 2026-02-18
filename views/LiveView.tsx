@@ -1,4 +1,3 @@
-
 import React, { useState, useRef, useCallback, useEffect } from 'react';
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 
@@ -121,19 +120,20 @@ const LiveView: React.FC = () => {
           },
           onmessage: async (message: LiveServerMessage) => {
             const parts = message.serverContent?.modelTurn?.parts;
-            const audioData = parts && parts.length > 0 ? parts[0].inlineData?.data : null;
-            
-            if (audioData) {
-              const ctx = audioContextRef.current!;
-              nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
-              const buffer = await decodeAudioData(decode(audioData), ctx, 24000, 1);
-              const src = ctx.createBufferSource();
-              src.buffer = buffer;
-              src.connect(ctx.destination);
-              src.start(nextStartTimeRef.current);
-              nextStartTimeRef.current += buffer.duration;
-              sourcesRef.current.add(src);
-              src.onended = () => sourcesRef.current.delete(src);
+            if (parts && parts.length > 0) {
+              const audioData = parts[0].inlineData?.data;
+              if (audioData) {
+                const ctx = audioContextRef.current!;
+                nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
+                const buffer = await decodeAudioData(decode(audioData), ctx, 24000, 1);
+                const src = ctx.createBufferSource();
+                src.buffer = buffer;
+                src.connect(ctx.destination);
+                src.start(nextStartTimeRef.current);
+                nextStartTimeRef.current += buffer.duration;
+                sourcesRef.current.add(src);
+                src.onended = () => sourcesRef.current.delete(src);
+              }
             }
 
             if (message.serverContent?.interrupted) {

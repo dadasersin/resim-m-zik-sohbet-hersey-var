@@ -1,0 +1,10 @@
+/* Tailwind directives if needed in the future */
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}

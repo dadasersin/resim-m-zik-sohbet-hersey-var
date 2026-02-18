@@ -1,4 +1,3 @@
-
 import React, { useState, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
 import { AspectRatio } from '../types';
@@ -51,7 +50,8 @@ const VisualsView: React.FC = () => {
           config: { imageConfig: { aspectRatio } }
         });
         
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+        const candidate = response.candidates?.[0];
+        const imagePart = candidate?.content?.parts?.find(p => p.inlineData);
         if (imagePart?.inlineData) {
           setResult({ url: `data:image/png;base64,${imagePart.inlineData.data}`, type: 'image' });
         }
@@ -67,24 +67,28 @@ const VisualsView: React.FC = () => {
             ]
           }
         });
-        const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
+        const candidate = response.candidates?.[0];
+        const imagePart = candidate?.content?.parts?.find(p => p.inlineData);
         if (imagePart?.inlineData) {
           setResult({ url: `data:image/png;base64,${imagePart.inlineData.data}`, type: 'image' });
         }
       } 
       else if (mode === 'video' || isExtension) {
         const aiStudio = (window as any).aistudio;
-        if (aiStudio && !(await aiStudio.hasSelectedApiKey())) {
+        if (aiStudio && typeof aiStudio.hasSelectedApiKey === 'function' && !(await aiStudio.hasSelectedApiKey())) {
           await aiStudio.openSelectKey();
         }
 
         let operation;
         if (isExtension && lastOperation) {
           setStatus('Video Uzatılıyor...');
+          const lastVideo = lastOperation.response?.generatedVideos?.[0]?.video;
+          if (!lastVideo) throw new Error("Uzatılacak video bulunamadı.");
+
           operation = await ai.models.generateVideos({
             model: 'veo-3.1-generate-preview',
             prompt: prompt || 'Continue',
-            video: lastOperation.response?.generatedVideos?.[0]?.video,
+            video: lastVideo,
             config: { numberOfVideos: 1, resolution: '720p', aspectRatio: (aspectRatio === '9:16' || aspectRatio === '16:9') ? aspectRatio : '16:9' }
           });
         } else {
@@ -103,7 +107,8 @@ const VisualsView: React.FC = () => {
         }
 
         setLastOperation(operation);
-        const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
+        const generatedVideo = operation.response?.generatedVideos?.[0];
+        const downloadLink = generatedVideo?.video?.uri;
         if (downloadLink) {
           const videoRes = await fetch(`${downloadLink}&key=${process.env.API_KEY || ''}`);
           const blob = await videoRes.blob();
