@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { SyncSettings } from '../types';
 
@@ -14,6 +13,7 @@ const SettingsView: React.FC<SettingsProps> = ({ onSyncNow }) => {
     path: 'moduler-ai-backup.json'
   });
   const [hasVeoKey, setHasVeoKey] = useState(false);
+  const [isAiStudioEnv, setIsAiStudioEnv] = useState(false);
 
   useEffect(() => {
     const saved = localStorage.getItem('sync_settings');
@@ -21,18 +21,25 @@ const SettingsView: React.FC<SettingsProps> = ({ onSyncNow }) => {
     
     // API Anahtarı durumunu kontrol et
     const checkKey = async () => {
-      if ((window as any).aistudio?.hasSelectedApiKey) {
-        const has = await (window as any).aistudio.hasSelectedApiKey();
-        setHasVeoKey(has);
+      const aiStudio = (window as any).aistudio;
+      if (aiStudio) {
+        setIsAiStudioEnv(true);
+        if (typeof aiStudio.hasSelectedApiKey === 'function') {
+          const has = await aiStudio.hasSelectedApiKey();
+          setHasVeoKey(has);
+        }
       }
     };
     checkKey();
   }, []);
 
   const handleOpenKeyPicker = async () => {
-    if ((window as any).aistudio?.openSelectKey) {
-      await (window as any).aistudio.openSelectKey();
-      setHasVeoKey(true); // Seçimden sonra başarılı kabul et
+    const aiStudio = (window as any).aistudio;
+    if (aiStudio?.openSelectKey) {
+      await aiStudio.openSelectKey();
+      setHasVeoKey(true);
+    } else {
+      alert("Bu özellik sadece desteklenen platformlarda (Google AI Studio vb.) çalışır.");
     }
   };
 
@@ -52,6 +59,8 @@ const SettingsView: React.FC<SettingsProps> = ({ onSyncNow }) => {
     }
   };
 
+  const hasMasterKey = !!process.env.API_KEY;
+
   return (
     <div className="flex-1 p-4 md:p-8 overflow-y-auto bg-slate-950 pb-24">
       <div className="max-w-3xl mx-auto space-y-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -63,7 +72,39 @@ const SettingsView: React.FC<SettingsProps> = ({ onSyncNow }) => {
           <p className="text-slate-400">Platform özelliklerini ve veri güvenliğini yönetin.</p>
         </header>
 
-        {/* API Anahtarı Yönetimi */}
+        {/* Master API Key Status Info - WHERE TO ENTER API KEY EXPLANATION */}
+        <section className="glass-panel p-6 rounded-3xl border border-slate-800 bg-indigo-500/5 relative overflow-hidden">
+          <div className="flex items-start gap-4">
+            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center text-xl shadow-lg ${hasMasterKey ? 'bg-green-500/20 text-green-400 border border-green-500/30' : 'bg-red-500/20 text-red-400 border border-red-500/30'}`}>
+              <i className={`fa-solid ${hasMasterKey ? 'fa-check-circle' : 'fa-circle-exclamation'}`}></i>
+            </div>
+            <div className="flex-1">
+              <h3 className="font-bold text-lg mb-1">Ana API Anahtarı Durumu</h3>
+              <p className="text-sm text-slate-300 mb-3">
+                Uygulamanın çalışması için gerekli olan ana anahtar <strong>{hasMasterKey ? 'Algılandı' : 'Eksik'}</strong>.
+              </p>
+              
+              <div className="bg-slate-900/80 p-4 rounded-2xl border border-slate-800 text-xs space-y-3">
+                <p className="text-slate-400 font-medium flex items-center gap-2">
+                  <i className="fa-solid fa-info-circle text-indigo-400"></i>
+                  API anahtarını nereye girmelisiniz?
+                </p>
+                <ul className="space-y-2 text-slate-500">
+                  <li className="flex gap-2">
+                    <span className="text-indigo-400 font-bold">1. Render.com:</span> 
+                    Dashboard -> Environment Variables sekmesinden <code>API_KEY</code> isminde ekleyin.
+                  </li>
+                  <li className="flex gap-2">
+                    <span className="text-indigo-400 font-bold">2. Yerel (Local):</span> 
+                    Proje ana dizinine <code>.env</code> dosyası oluşturup <code>API_KEY=anahtarınız</code> yazın.
+                  </li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        {/* Model Yetkilendirmesi */}
         <section className="glass-panel p-6 rounded-3xl border border-slate-800 shadow-xl overflow-hidden relative">
            <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-600/5 blur-3xl rounded-full -mr-16 -mt-16"></div>
            <div className="flex flex-col md:flex-row md:items-center justify-between gap-6">
@@ -72,25 +113,29 @@ const SettingsView: React.FC<SettingsProps> = ({ onSyncNow }) => {
                     <i className="fa-solid fa-key"></i>
                  </div>
                  <div>
-                    <h3 className="font-bold text-lg">Model Yetkilendirmesi</h3>
-                    <p className="text-xs text-slate-500 max-w-sm">Veo Video ve Gemini Pro modelleri için Google Cloud Faturalandırma hesabı gereklidir.</p>
+                    <h3 className="font-bold text-lg">Gelişmiş Model Yetkilendirmesi</h3>
+                    <p className="text-xs text-slate-500 max-w-sm">Veo Video ve Gemini Pro modelleri için (sadece desteklenen ortamlarda) ek yetkilendirme sağlar.</p>
                  </div>
               </div>
               <div className="flex items-center gap-3">
                  <div className={`px-3 py-1.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${hasVeoKey ? 'bg-green-500/10 text-green-500 border border-green-500/20' : 'bg-amber-500/10 text-amber-500 border border-amber-500/20'}`}>
                     {hasVeoKey ? 'Yetkilendirildi' : 'Yetki Bekleniyor'}
                  </div>
-                 <button 
-                  onClick={handleOpenKeyPicker}
-                  className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-lg"
-                 >
-                   API ANAHTARI SEÇ
-                 </button>
+                 {isAiStudioEnv && (
+                   <button 
+                    onClick={handleOpenKeyPicker}
+                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-500 text-white rounded-xl text-xs font-bold transition shadow-lg"
+                   >
+                     API ANAHTARI SEÇ
+                   </button>
+                 )}
               </div>
            </div>
-           <p className="mt-4 text-[10px] text-slate-600 italic">
-             * Daha fazla bilgi için <a href="https://ai.google.dev/gemini-api/docs/billing" target="_blank" className="text-indigo-400 underline">Faturalandırma Dokümantasyonu</a>'nu ziyaret edin.
-           </p>
+           {!isAiStudioEnv && (
+             <p className="mt-4 text-[10px] text-slate-500 bg-slate-900/50 p-2 rounded-lg border border-slate-800/50 italic">
+               * "API Anahtarı Seç" butonu şu anki ortamınızda pasif. Lütfen yukarıdaki <strong>Ana API Anahtarı</strong> talimatlarını izleyin.
+             </p>
+           )}
         </section>
 
         {/* GitHub Senkronizasyonu */}
