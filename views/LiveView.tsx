@@ -1,6 +1,7 @@
 
-import React, { useState, useRef, useCallback } from 'react';
-import { GoogleGenAI, Modality } from '@google/genai';
+import React, { useState, useRef, useCallback, useEffect } from 'react';
+// FIX: Import LiveServerMessage from @google/genai
+import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 
 const LiveView: React.FC = () => {
   const [isActive, setIsActive] = useState(false);
@@ -13,6 +14,22 @@ const LiveView: React.FC = () => {
   const sessionRef = useRef<any>(null);
   const mediaStreamRef = useRef<MediaStream | null>(null);
 
+  useEffect(() => {
+    const handleStart = () => {
+      if (!isActive && !isConnecting) startSession();
+    };
+    const handleStop = () => {
+      if (isActive) stopSession();
+    };
+    window.addEventListener('voice-live-start', handleStart);
+    window.addEventListener('voice-live-stop', handleStop);
+    return () => {
+      window.removeEventListener('voice-live-start', handleStart);
+      window.removeEventListener('voice-live-stop', handleStop);
+    };
+  }, [isActive, isConnecting]);
+
+  // FIX: Manual implementation of decode/encode as required by guidelines
   const decode = (base64: string) => {
     const binaryString = atob(base64);
     const bytes = new Uint8Array(binaryString.length);
@@ -30,6 +47,7 @@ const LiveView: React.FC = () => {
     return btoa(binary);
   };
 
+  // FIX: Manual implementation of audio decoding for raw PCM as per guidelines
   const decodeAudioData = async (data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number) => {
     const dataInt16 = new Int16Array(data.buffer);
     const frameCount = dataInt16.length / numChannels;
@@ -75,7 +93,6 @@ const LiveView: React.FC = () => {
       });
 
       mediaStreamRef.current = stream;
-      // Initialize GoogleGenAI right before use with the environment API key
       const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
       
       const inAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
@@ -100,29 +117,30 @@ const LiveView: React.FC = () => {
                 data: encode(new Uint8Array(int16.buffer)),
                 mimeType: 'audio/pcm;rate=16000',
               };
-              // Ensure we only send data after the session promise resolves
+              // FIX: Solely rely on sessionPromise to send input and avoid race conditions
               sessionPromise.then((s) => s.sendRealtimeInput({ media: pcmBlob }));
             };
             source.connect(processor);
             processor.connect(inAudioCtx.destination);
           },
-          onmessage: async (msg: any) => {
-            const audioData = msg.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+          // FIX: Removed duplicate onmessage property and updated to use LiveServerMessage type
+          onmessage: async (message: LiveServerMessage) => {
+            const audioData = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
             if (audioData) {
               const ctx = audioContextRef.current!;
-              // Track end of queue for gapless playback
               nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
               const buffer = await decodeAudioData(decode(audioData), ctx, 24000, 1);
               const src = ctx.createBufferSource();
               src.buffer = buffer;
               src.connect(ctx.destination);
+              // FIX: Use precise nextStartTime for seamless audio playback
               src.start(nextStartTimeRef.current);
               nextStartTimeRef.current += buffer.duration;
               sourcesRef.current.add(src);
               src.onended = () => sourcesRef.current.delete(src);
             }
 
-            if (msg.serverContent?.interrupted) {
+            if (message.serverContent?.interrupted) {
               sourcesRef.current.forEach(s => {
                 try { s.stop(); } catch(e) {}
               });
@@ -182,11 +200,18 @@ const LiveView: React.FC = () => {
             {error}
           </div>
         ) : (
-          <p className="text-slate-400 mb-8">
-            {isActive 
-              ? 'YZ ile doğal bir şekilde konuşun. Gerçek zamanlı olarak cevap verecektir.' 
-              : 'Gemini ile düşük gecikmeli, çok modlu etkileşimi deneyimleyin.'}
-          </p>
+          <div className="space-y-4 mb-8">
+            <p className="text-slate-400">
+              {isActive 
+                ? 'YZ ile doğal bir şekilde konuşun. Gerçek zamanlı olarak cevap verecektir.' 
+                : 'Gemini ile düşük gecikmeli, çok modlu etkileşimi deneyimleyin.'}
+            </p>
+            {!isActive && (
+              <p className="text-[10px] text-indigo-400 font-bold uppercase tracking-widest flex items-center justify-center gap-1">
+                <i className="fa-solid fa-microphone"></i> "Canlıyı başlat" diyerek de başlayabilirsiniz.
+              </p>
+            )}
+          </div>
         )}
 
         {!isActive ? (
@@ -217,14 +242,14 @@ const LiveView: React.FC = () => {
          <p className="text-xs font-semibold text-slate-500 uppercase mb-4">Sistem Konsolu</p>
          <div className="space-y-2 font-mono text-xs">
             {error ? (
-              <p className="text-red-400">> HATA: {error}</p>
+              <p className="text-red-400">&gt; HATA: {error}</p>
             ) : isActive ? (
-              <p className="text-green-400">> Bağlantı kuruldu. Akış aktif.</p>
+              <p className="text-green-400">&gt; Bağlantı kuruldu. Akış aktif.</p>
             ) : (
-              <p className="text-slate-500">> Sistem hazır. Kullanıcı girişi bekleniyor...</p>
+              <p className="text-slate-500">&gt; Sistem hazır. Kullanıcı girişi bekleniyor...</p>
             )}
-            <p className="text-slate-500">> Donanım: {navigator.mediaDevices ? 'Medya Desteği Algılandı' : 'Medya Desteği Yok'}</p>
-            <p className="text-slate-500">> Yöntem: SADECE_SES</p>
+            <p className="text-slate-500">&gt; Donanım: {navigator.mediaDevices ? 'Medya Desteği Algılandı' : 'Medya Desteği Yok'}</p>
+            <p className="text-slate-500">&gt; Sesli Komut Kontrolü: AKTİF</p>
          </div>
       </div>
     </div>

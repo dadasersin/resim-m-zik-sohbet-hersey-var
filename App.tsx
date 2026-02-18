@@ -7,13 +7,13 @@ import VisualsView from './views/VisualsView';
 import AudioView from './views/AudioView';
 import LiveView from './views/LiveView';
 import SettingsView from './views/SettingsView';
+import VoiceAssistant from './components/VoiceAssistant';
 import { AppView, SyncSettings } from './types';
 
 const App: React.FC = () => {
   const [activeView, setActiveView] = useState<AppView>(AppView.DASHBOARD);
   const [syncStatus, setSyncStatus] = useState<'idle' | 'syncing' | 'success' | 'error'>('idle');
 
-  // GitHub Senkronizasyon Fonksiyonu
   const performGitHubSync = useCallback(async () => {
     const settingsStr = localStorage.getItem('sync_settings');
     if (!settingsStr) return;
@@ -78,6 +78,43 @@ const App: React.FC = () => {
     return () => clearInterval(interval);
   }, [performGitHubSync]);
 
+  const handleVoiceCommand = (command: string, action: string, payload: string) => {
+    switch (action) {
+      case 'chat':
+        setActiveView(AppView.CHAT);
+        setTimeout(() => window.dispatchEvent(new CustomEvent('voice-chat', { detail: payload })), 100);
+        break;
+      case 'visuals':
+        setActiveView(AppView.VISUALS);
+        setTimeout(() => window.dispatchEvent(new CustomEvent('voice-visuals', { detail: { prompt: payload, mode: command.startsWith('video') ? 'video' : 'image' } })), 100);
+        break;
+      case 'audio-tts':
+        setActiveView(AppView.AUDIO);
+        setTimeout(() => window.dispatchEvent(new CustomEvent('voice-audio', { detail: { prompt: payload, mode: 'tts' } })), 100);
+        break;
+      case 'audio-remix':
+        setActiveView(AppView.AUDIO);
+        setTimeout(() => window.dispatchEvent(new CustomEvent('voice-audio', { detail: { prompt: payload, mode: 'remix' } })), 100);
+        break;
+      case 'audio': // Legacy support
+        setActiveView(AppView.AUDIO);
+        setTimeout(() => window.dispatchEvent(new CustomEvent('voice-audio', { detail: { prompt: payload, mode: 'tts' } })), 100);
+        break;
+      case 'live-start':
+        setActiveView(AppView.LIVE);
+        setTimeout(() => window.dispatchEvent(new CustomEvent('voice-live-start')), 100);
+        break;
+      case 'live-stop':
+        setActiveView(AppView.LIVE);
+        setTimeout(() => window.dispatchEvent(new CustomEvent('voice-live-stop')), 100);
+        break;
+      case 'nav':
+        const targetView = Object.values(AppView).find(v => payload.toLowerCase().includes(v.toLowerCase()));
+        if (targetView) setActiveView(targetView as AppView);
+        break;
+    }
+  };
+
   const renderView = () => {
     switch (activeView) {
       case AppView.DASHBOARD: return <Dashboard onViewChange={setActiveView} />;
@@ -101,6 +138,7 @@ const App: React.FC = () => {
       <main className="flex-1 flex flex-col relative overflow-hidden h-full">
         {renderView()}
       </main>
+      <VoiceAssistant onCommand={handleVoiceCommand} />
     </div>
   );
 };
