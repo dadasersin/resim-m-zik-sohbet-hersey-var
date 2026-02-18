@@ -15,7 +15,12 @@ const ChatView: React.FC = () => {
 
   useEffect(() => {
     localStorage.setItem('chat_history', JSON.stringify(messages));
-    if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
+    if (scrollRef.current) {
+      scrollRef.current.scrollTo({
+        top: scrollRef.current.scrollHeight,
+        behavior: 'smooth'
+      });
+    }
   }, [messages, isTyping]);
 
   const triggerSend = async (text: string) => {
@@ -49,26 +54,77 @@ const ChatView: React.FC = () => {
   };
 
   return (
-    <div className="flex-1 flex flex-col bg-slate-950">
-      <div className="p-4 border-b border-slate-800 glass-panel flex justify-between items-center">
-        <h2 className="font-bold">Gemini Sohbet</h2>
-        <button onClick={() => { if(confirm('Geçmiş silinsin mi?')) { setMessages([]); localStorage.removeItem('chat_history'); } }} className="text-xs px-3 py-1 bg-red-900/20 text-red-400 rounded">Temizle</button>
+    <div className="flex-1 flex flex-col bg-slate-950 h-full overflow-hidden">
+      {/* Header */}
+      <div className="p-4 border-b border-slate-800 glass-panel flex justify-between items-center shrink-0">
+        <div className="flex items-center gap-3">
+          <div className="w-8 h-8 rounded-lg bg-indigo-600 flex items-center justify-center">
+            <i className="fa-solid fa-robot text-sm"></i>
+          </div>
+          <h2 className="font-bold text-sm md:text-base">Gemini Sohbet</h2>
+        </div>
+        <button 
+          onClick={() => { if(confirm('Geçmiş silinsin mi?')) { setMessages([]); localStorage.removeItem('chat_history'); } }} 
+          className="text-[10px] font-bold uppercase tracking-widest px-3 py-1.5 bg-red-900/20 text-red-400 rounded-lg border border-red-500/20 hover:bg-red-900/40 transition-all"
+        >
+          Temizle
+        </button>
       </div>
-      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4">
+
+      {/* Mesaj Listesi */}
+      <div ref={scrollRef} className="flex-1 overflow-y-auto p-4 space-y-4 scroll-smooth">
+        {messages.length === 0 && (
+          <div className="h-full flex flex-col items-center justify-center text-slate-600 opacity-40 gap-4">
+             <i className="fa-solid fa-comments text-6xl"></i>
+             <p className="text-xs font-bold uppercase tracking-widest">Sohbeti Başlatın</p>
+          </div>
+        )}
         {messages.map((m) => (
-          <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'}`}>
-            <div className={`max-w-[80%] rounded-2xl px-4 py-3 ${m.role === 'user' ? 'bg-indigo-600 text-white' : 'bg-slate-800 text-slate-100 border border-slate-700'}`}>
-              <p className="whitespace-pre-wrap text-sm">{m.text}</p>
+          <div key={m.id} className={`flex ${m.role === 'user' ? 'justify-end' : 'justify-start'} animate-in fade-in slide-in-from-bottom-2`}>
+            <div className={`max-w-[85%] md:max-w-[70%] rounded-2xl px-4 py-3 shadow-lg ${
+              m.role === 'user' 
+                ? 'bg-indigo-600 text-white rounded-tr-none' 
+                : 'bg-slate-800 text-slate-100 border border-slate-700 rounded-tl-none'
+            }`}>
+              <p className="whitespace-pre-wrap text-sm leading-relaxed">{m.text}</p>
+              <span className="text-[8px] opacity-40 mt-1 block text-right">
+                {new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+              </span>
             </div>
           </div>
         ))}
-        {isTyping && <div className="flex justify-start"><div className="bg-slate-800 rounded-2xl px-4 py-3 animate-pulse">...</div></div>}
+        {isTyping && (
+          <div className="flex justify-start">
+            <div className="bg-slate-800 rounded-2xl px-4 py-3 border border-slate-700 flex gap-1 items-center">
+              <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce"></div>
+              <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.2s]"></div>
+              <div className="w-1.5 h-1.5 bg-indigo-500 rounded-full animate-bounce [animation-delay:0.4s]"></div>
+            </div>
+          </div>
+        )}
       </div>
-      <div className="p-4 glass-panel border-t border-slate-800">
-        <form onSubmit={(e) => { e.preventDefault(); triggerSend(input); }} className="max-w-4xl mx-auto flex gap-3">
-          <input type="text" value={input} onChange={(e) => setInput(e.target.value)} placeholder="Mesaj..." className="flex-1 bg-slate-900 border border-slate-800 rounded-xl px-4 py-3 focus:border-indigo-500 outline-none" />
-          <button type="submit" disabled={isTyping} className="bg-indigo-600 px-6 py-3 rounded-xl"><i className="fa-solid fa-paper-plane"></i></button>
+
+      {/* Giriş Kutusu - Mobil Menü için pb-24 eklendi */}
+      <div className="p-4 pb-24 md:pb-6 glass-panel border-t border-slate-800 shrink-0">
+        <form onSubmit={(e) => { e.preventDefault(); triggerSend(input); }} className="max-w-4xl mx-auto relative">
+          <input 
+            type="text" 
+            value={input} 
+            onChange={(e) => setInput(e.target.value)} 
+            placeholder="Mesajınızı yazın..." 
+            className="w-full bg-slate-900 border border-slate-800 rounded-2xl pl-4 pr-14 py-4 text-sm focus:border-indigo-500 outline-none transition-all shadow-inner placeholder:text-slate-600" 
+          />
+          <button 
+            type="submit" 
+            disabled={isTyping || !input.trim()} 
+            className="absolute right-2 top-1/2 -translate-y-1/2 w-10 h-10 bg-indigo-600 hover:bg-indigo-500 disabled:bg-slate-800 disabled:text-slate-600 rounded-xl flex items-center justify-center transition-all active:scale-90 shadow-lg"
+          >
+            <i className="fa-solid fa-paper-plane text-xs"></i>
+          </button>
         </form>
+        <p className="text-center text-[9px] text-slate-600 mt-3 font-medium uppercase tracking-tighter">
+          Gemini 3 Flash ile güçlendirilmiştir
+        </p>
       </div>
     </div>
   );

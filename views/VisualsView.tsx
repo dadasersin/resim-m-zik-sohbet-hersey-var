@@ -123,24 +123,20 @@ const VisualsView: React.FC = () => {
       }
     } catch (error: any) {
       console.error('Hata:', error);
-      if (error.message?.includes('429') || error.message?.includes('RESOURCE_EXHAUSTED')) {
-        alert("API KOTASI DOLDU: Ücretsiz kullanım sınırına ulaştınız.");
-      } else {
-        alert(`Bir hata oluştu: ${error.message}`);
-      }
+      alert(`Bir hata oluştu: ${error.message}`);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="flex-1 flex flex-col md:flex-row bg-slate-950 h-full overflow-hidden">
-      <div className="w-full md:w-80 glass-panel border-r border-slate-800 p-6 flex flex-col gap-6 overflow-y-auto max-h-[40%] md:max-h-full">
+    <div className="flex-1 flex flex-col md:flex-row bg-slate-950 h-full overflow-hidden pb-24 md:pb-0">
+      <div className="w-full md:w-80 glass-panel border-r border-slate-800 p-6 flex flex-col gap-6 overflow-y-auto max-h-[45%] md:max-h-full shrink-0">
         <h2 className="text-xl font-bold flex items-center gap-3">
           <i className="fa-solid fa-wand-magic-sparkles text-indigo-500"></i>
           Stüdyo
         </h2>
-        <div className="flex bg-slate-900 rounded-xl p-1 border border-slate-800">
+        <div className="flex bg-slate-900 rounded-xl p-1 border border-slate-800 shrink-0">
           {(['generate', 'edit', 'video'] as const).map(m => (
             <button key={m} onClick={() => setMode(m)} className={`flex-1 py-2 text-[10px] font-bold rounded-lg transition-all ${mode === m ? 'bg-indigo-600 text-white shadow-lg' : 'text-slate-400'}`}>
               {m.toUpperCase()}
@@ -148,19 +144,13 @@ const VisualsView: React.FC = () => {
           ))}
         </div>
         <div className="space-y-4">
-          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Ne üretmek veya düzenlemek istersiniz?" className="w-full h-32 bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm focus:border-indigo-500 outline-none text-slate-100 placeholder:text-slate-600" />
+          <textarea value={prompt} onChange={(e) => setPrompt(e.target.value)} placeholder="Ne üretmek istersiniz?" className="w-full h-24 bg-slate-900 border border-slate-800 rounded-xl p-4 text-sm focus:border-indigo-500 outline-none text-slate-100" />
           
           <div className="grid grid-cols-2 gap-3">
-            <button 
-              onClick={() => cameraInputRef.current?.click()} 
-              className="flex items-center justify-center gap-2 py-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-2xl text-white transition-all text-xs font-bold"
-            >
+            <button onClick={() => cameraInputRef.current?.click()} className="flex items-center justify-center gap-2 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-white text-[10px] font-bold">
               <i className="fa-solid fa-camera"></i> KAMERA
             </button>
-            <button 
-              onClick={() => fileInputRef.current?.click()} 
-              className="flex items-center justify-center gap-2 py-4 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-2xl text-white transition-all text-xs font-bold"
-            >
+            <button onClick={() => fileInputRef.current?.click()} className="flex items-center justify-center gap-2 py-3 bg-slate-800 hover:bg-slate-700 border border-slate-700 rounded-xl text-white text-[10px] font-bold">
               <i className="fa-solid fa-upload"></i> YÜKLE
             </button>
           </div>
@@ -170,34 +160,34 @@ const VisualsView: React.FC = () => {
 
           {selectedMedia && (
             <div className="p-3 bg-indigo-500/10 border border-indigo-500/30 rounded-xl flex items-center justify-between">
-              <span className="text-[10px] font-bold text-indigo-400 truncate uppercase tracking-widest">Medya Hazır</span>
+              <span className="text-[10px] font-bold text-indigo-400 truncate uppercase">Medya Hazır</span>
               <button onClick={() => setSelectedMedia(null)} className="text-slate-500 hover:text-red-500"><i className="fa-solid fa-xmark"></i></button>
             </div>
           )}
 
-          <button disabled={loading} onClick={() => triggerProcess()} className="w-full py-5 bg-indigo-600 hover:bg-indigo-500 rounded-2xl font-black text-xs uppercase shadow-xl shadow-indigo-600/20 disabled:opacity-50 transition-all">
+          <button disabled={loading} onClick={() => triggerProcess()} className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 rounded-xl font-black text-xs uppercase shadow-xl disabled:opacity-50 transition-all">
             {loading ? <i className="fa-solid fa-spinner animate-spin"></i> : 'BAŞLAT'}
           </button>
         </div>
       </div>
-      <div className="flex-1 p-6 flex items-center justify-center relative bg-slate-950/50">
+      <div className="flex-1 p-4 md:p-6 flex items-center justify-center relative bg-slate-950/50 overflow-hidden">
         {loading && (
           <div className="absolute inset-0 bg-slate-950/90 z-20 flex flex-col items-center justify-center text-center p-8 backdrop-blur-sm">
-            <div className="w-16 h-16 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-6"></div>
-            <h2 className="text-xl font-bold text-indigo-400 animate-pulse">{status}</h2>
+            <div className="w-12 h-12 border-4 border-indigo-500/20 border-t-indigo-500 rounded-full animate-spin mb-6"></div>
+            <h2 className="text-lg font-bold text-indigo-400 animate-pulse">{status}</h2>
           </div>
         )}
-        <div className="w-full h-full max-w-4xl rounded-[2rem] border border-slate-800/50 bg-slate-900/50 flex items-center justify-center overflow-hidden">
+        <div className="w-full h-full rounded-[1.5rem] border border-slate-800/50 bg-slate-900/50 flex items-center justify-center overflow-hidden">
           {result ? (
             result.type === 'image' ? (
-              <img src={result.url} className="max-w-full max-h-full object-contain rounded-2xl shadow-2xl animate-in zoom-in-95 duration-500" alt="Result" />
+              <img src={result.url} className="max-w-full max-h-full object-contain rounded-xl shadow-2xl animate-in zoom-in-95 duration-500" alt="Result" />
             ) : (
-              <video src={result.url} controls autoPlay className="max-w-full max-h-full rounded-2xl shadow-2xl" />
+              <video src={result.url} controls autoPlay className="max-w-full max-h-full rounded-xl shadow-2xl" />
             )
           ) : (
             <div className="text-slate-800 flex flex-col items-center gap-4 opacity-20">
-              <i className="fa-solid fa-mountain-sun text-8xl"></i>
-              <p className="text-xs font-black uppercase tracking-widest">Çıktı Bekleniyor</p>
+              <i className="fa-solid fa-mountain-sun text-6xl"></i>
+              <p className="text-[10px] font-black uppercase tracking-widest">Çıktı Alanı</p>
             </div>
           )}
         </div>
