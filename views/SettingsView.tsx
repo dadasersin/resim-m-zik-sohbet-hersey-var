@@ -92,7 +92,7 @@ const SettingsView: React.FC<SettingsProps> = ({ onSyncNow }) => {
                 <ul className="space-y-2 text-slate-500">
                   <li className="flex gap-2">
                     <span className="text-indigo-400 font-bold">1. Render.com:</span> 
-                    Dashboard -> Environment Variables sekmesinden <code>API_KEY</code> isminde ekleyin.
+                    Dashboard &rarr; Environment Variables sekmesinden <code>API_KEY</code> isminde ekleyin.
                   </li>
                   <li className="flex gap-2">
                     <span className="text-indigo-400 font-bold">2. Yerel (Local):</span> 
