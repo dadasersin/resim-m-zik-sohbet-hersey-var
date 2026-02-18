@@ -18,6 +18,28 @@ export interface ChatMessage {
   timestamp: number;
 }
 
+export type ApiProvider = 'gemini' | 'openai' | 'deepseek' | 'grok' | 'custom';
+
+export interface ApiKeyEntry {
+  id: string;
+  key: string;
+  label: string;
+  provider: ApiProvider;
+  modelName: string;
+  baseUrl?: string;
+  isQuotaExhausted: boolean;
+  lastUsed?: number;
+}
+
+export interface SyncSettings {
+  enabled: boolean;
+  token: string;
+  repo: string; 
+  path: string; 
+  lastSync?: number;
+  customApiKeys: ApiKeyEntry[];
+}
+
 export interface VisualAsset {
   id: string;
   type: 'image' | 'video';
@@ -32,14 +54,6 @@ export interface AudioRemix {
   remixUrl: string;
   prompt: string;
   timestamp: number;
-}
-
-export interface SyncSettings {
-  enabled: boolean;
-  token: string;
-  repo: string; 
-  path: string; 
-  lastSync?: number;
 }
 
 export interface AppState {
