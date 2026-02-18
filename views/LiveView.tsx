@@ -1,6 +1,5 @@
 
 import React, { useState, useRef, useCallback, useEffect } from 'react';
-// FIX: Import LiveServerMessage from @google/genai
 import { GoogleGenAI, Modality, LiveServerMessage } from '@google/genai';
 
 const LiveView: React.FC = () => {
@@ -29,7 +28,6 @@ const LiveView: React.FC = () => {
     };
   }, [isActive, isConnecting]);
 
-  // FIX: Manual implementation of decode/encode as required by guidelines
   const decode = (base64: string) => {
     const binaryString = atob(base64);
     const bytes = new Uint8Array(binaryString.length);
@@ -47,7 +45,6 @@ const LiveView: React.FC = () => {
     return btoa(binary);
   };
 
-  // FIX: Manual implementation of audio decoding for raw PCM as per guidelines
   const decodeAudioData = async (data: Uint8Array, ctx: AudioContext, sampleRate: number, numChannels: number) => {
     const dataInt16 = new Int16Array(data.buffer);
     const frameCount = dataInt16.length / numChannels;
@@ -93,7 +90,7 @@ const LiveView: React.FC = () => {
       });
 
       mediaStreamRef.current = stream;
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
       
       const inAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 16000 });
       const outAudioCtx = new (window.AudioContext || (window as any).webkitAudioContext)({ sampleRate: 24000 });
@@ -117,15 +114,15 @@ const LiveView: React.FC = () => {
                 data: encode(new Uint8Array(int16.buffer)),
                 mimeType: 'audio/pcm;rate=16000',
               };
-              // FIX: Solely rely on sessionPromise to send input and avoid race conditions
               sessionPromise.then((s) => s.sendRealtimeInput({ media: pcmBlob }));
             };
             source.connect(processor);
             processor.connect(inAudioCtx.destination);
           },
-          // FIX: Removed duplicate onmessage property and updated to use LiveServerMessage type
           onmessage: async (message: LiveServerMessage) => {
-            const audioData = message.serverContent?.modelTurn?.parts[0]?.inlineData?.data;
+            const parts = message.serverContent?.modelTurn?.parts;
+            const audioData = parts && parts.length > 0 ? parts[0].inlineData?.data : null;
+            
             if (audioData) {
               const ctx = audioContextRef.current!;
               nextStartTimeRef.current = Math.max(nextStartTimeRef.current, ctx.currentTime);
@@ -133,7 +130,6 @@ const LiveView: React.FC = () => {
               const src = ctx.createBufferSource();
               src.buffer = buffer;
               src.connect(ctx.destination);
-              // FIX: Use precise nextStartTime for seamless audio playback
               src.start(nextStartTimeRef.current);
               nextStartTimeRef.current += buffer.duration;
               sourcesRef.current.add(src);

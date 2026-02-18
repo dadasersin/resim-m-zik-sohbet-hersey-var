@@ -1,6 +1,7 @@
-import React, { useState, useRef, useEffect } from 'react';
+
+import React, { useState, useRef } from 'react';
 import { GoogleGenAI } from '@google/genai';
-import { VisualAsset, AspectRatio } from '../types';
+import { AspectRatio } from '../types';
 
 interface MediaData {
   data: string;
@@ -10,7 +11,7 @@ interface MediaData {
 const VisualsView: React.FC = () => {
   const [prompt, setPrompt] = useState('');
   const [mode, setMode] = useState<'generate' | 'edit' | 'video'>('generate');
-  const [aspectRatio, setAspectRatio] = useState<AspectRatio>('1:1');
+  const [aspectRatio] = useState<AspectRatio>('1:1');
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState('');
   const [result, setResult] = useState<{ url: string; type: 'image' | 'video' } | null>(null);
@@ -27,7 +28,7 @@ const VisualsView: React.FC = () => {
     reader.onload = (event) => {
       const base64 = (event.target?.result as string).split(',')[1];
       setSelectedMedia({ data: base64, mimeType: file.type });
-      setMode('edit'); // Fotoğraf gelince otomatik düzenleme moduna geç
+      setMode('edit');
     };
     reader.readAsDataURL(file);
     if (e.target) e.target.value = '';
@@ -40,7 +41,7 @@ const VisualsView: React.FC = () => {
     setStatus('İşlem Başlatılıyor...');
 
     try {
-      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+      const ai = new GoogleGenAI({ apiKey: process.env.API_KEY || '' });
 
       if (mode === 'generate') {
         setStatus('Görsel Çiziliyor...');
@@ -50,7 +51,7 @@ const VisualsView: React.FC = () => {
           config: { imageConfig: { aspectRatio } }
         });
         
-        const imagePart = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
         if (imagePart?.inlineData) {
           setResult({ url: `data:image/png;base64,${imagePart.inlineData.data}`, type: 'image' });
         }
@@ -66,14 +67,15 @@ const VisualsView: React.FC = () => {
             ]
           }
         });
-        const imagePart = response.candidates?.[0]?.content?.parts.find(p => p.inlineData);
+        const imagePart = response.candidates?.[0]?.content?.parts?.find(p => p.inlineData);
         if (imagePart?.inlineData) {
           setResult({ url: `data:image/png;base64,${imagePart.inlineData.data}`, type: 'image' });
         }
       } 
       else if (mode === 'video' || isExtension) {
-        if (window.aistudio && !(await window.aistudio.hasSelectedApiKey())) {
-          await window.aistudio.openSelectKey();
+        const aiStudio = (window as any).aistudio;
+        if (aiStudio && !(await aiStudio.hasSelectedApiKey())) {
+          await aiStudio.openSelectKey();
         }
 
         let operation;
@@ -103,7 +105,7 @@ const VisualsView: React.FC = () => {
         setLastOperation(operation);
         const downloadLink = operation.response?.generatedVideos?.[0]?.video?.uri;
         if (downloadLink) {
-          const videoRes = await fetch(`${downloadLink}&key=${process.env.API_KEY}`);
+          const videoRes = await fetch(`${downloadLink}&key=${process.env.API_KEY || ''}`);
           const blob = await videoRes.blob();
           setResult({ url: URL.createObjectURL(blob), type: 'video' });
         }
@@ -111,7 +113,7 @@ const VisualsView: React.FC = () => {
     } catch (error: any) {
       console.error('Hata:', error);
       if (error.message?.includes('429') || error.message?.includes('RESOURCE_EXHAUSTED')) {
-        alert("API KOTASI DOLDU: Ücretsiz kullanım sınırına ulaştınız. Lütfen bekleyin veya Ayarlar'dan ücretli bir anahtar seçin.");
+        alert("API KOTASI DOLDU: Ücretsiz kullanım sınırına ulaştınız.");
       } else {
         alert(`Bir hata oluştu: ${error.message}`);
       }
